@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Calculator</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(45deg, #1a1a2e, #16213e);
+            font-family: Arial, sans-serif;
+            perspective: 1000px;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .calculator {
+            width: 300px;
+            background-color: #0f3460;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            transform-style: preserve-3d;
+            transform: rotateX(10deg) rotateY(-10deg);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            padding: 20px;
+            position: relative;
+            will-change: transform;
+        }
+
+        .calculator:hover {
+            transform: rotateX(0deg) rotateY(0deg);
+        }
+
+        .calculator::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            transform: translateZ(-10px);
+            z-index: -1;
+        }
+
+        .display {
+            background-color: #1b262c;
+            height: 80px;
+            width: 100%;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: flex-end;
+            align-items: flex-end;
+            padding: 15px;
+            box-sizing: border-box;
+            border-radius: 10px;
+            font-size: 2.5em;
+            color: #fff;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(100, 255, 255, 0.7);
+            transform: translateZ(20px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-gap: 15px;
+            transform-style: preserve-3d;
+        }
+
+        button {
+            padding: 15px;
+            font-size: 1.2em;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            background-color: #e94560;
+            color: white;
+            font-weight: bold;
+            transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease;
+            transform-style: preserve-3d;
+            transform: translateZ(10px);
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+            will-change: transform;
+            backface-visibility: hidden;
+            -webkit-font-smoothing: subpixel-antialiased;
+            -webkit-backface-visibility: hidden;
+        }
+
+        button:hover {
+            transform: translateZ(15px) scale(1.05);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        button:active {
+            transform: translateZ(5px);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+
+        button.operator {
+            background-color: #533483;
+        }
+
+        button.equals {
+            background-color: #16213e;
+            grid-column: span 2;
+        }
+
+        button.clear, button.delete {
+            background-color: #0f3460;
+        }
+
+        .calculator-shadow {
+            position: absolute;
+            width: 300px;
+            height: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            bottom: -30px;
+            border-radius: 50%;
+            filter: blur(15px);
+            z-index: -2;
+        }
+
+        .glow {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, rgba(233, 69, 96, 0.1) 0%, transparent 70%);
+            top: 0;
+            left: 0;
+            z-index: -1;
+            transform: translateZ(-5px);
+            animation: glow 2s infinite alternate;
+        }
+
+        @keyframes glow {
+            from {
+                opacity: 0.3;
+            }
+            to {
+                opacity: 0.6;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator">
+        <div class="display">0</div>
+        <div class="buttons">
+            <button class="clear">C</button>
+            <button class="delete">DEL</button>
+            <button class="operator">%</button>
+            <button class="operator">÷</button>
+            <button>7</button>
+            <button>8</button>
+            <button>9</button>
+            <button class="operator">×</button>
+            <button>4</button>
+            <button>5</button>
+            <button>6</button>
+            <button class="operator">-</button>
+            <button>1</button>
+            <button>2</button>
+            <button>3</button>
+            <button class="operator">+</button>
+            <button>0</button>
+            <button>.</button>
+            <button class="equals">=</button>
+        </div>
+        <div class="glow"></div>
+    </div>
+    <div class="calculator-shadow"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const display = document.querySelector('.display');
+            const buttons = document.querySelectorAll('.buttons button');
+            let currentInput = '0';
+            let operator = null;
+            let previousInput = '';
+            let calculationPerformed = false;
+
+            // 3D Effect for mouse movement
+            const calculator = document.querySelector('.calculator');
+            document.addEventListener('mousemove', function(e) {
+                const xAxis = (window.innerWidth / 2 - e.pageX) / 15;
+                const yAxis = (window.innerHeight / 2 - e.pageY) / 15;
+                calculator.style.transform = `rotateY(${xAxis}deg) rotateX(${-yAxis}deg)`;
+            });
+
+            // Function to update display
+            function updateDisplay() {
+                display.textContent = currentInput;
+            }
+
+            // Function to handle number input
+            function handleNumber(number) {
+                if (currentInput === '0' || calculationPerformed) {
+                    currentInput = number;
+                    calculationPerformed = false;
+                } else {
+                    currentInput += number;
+                }
+                updateDisplay();
+            }
+
+            // Function to handle operator input
+            function handleOperator(op) {
+                if (operator !== null && previousInput !== '') {
+                    calculate();
+                }
+                previousInput = currentInput;
+                operator = op;
+                currentInput = '0';
+            }
+
+            // Function to perform calculation
+            function calculate() {
+                let result;
+                const prev = parseFloat(previousInput);
+                const current = parseFloat(currentInput);
+
+                if (isNaN(prev) || isNaN(current)) return;
+
+                switch (operator) {
+                    case '+':
+                        result = prev + current;
+                        break;
+                    case '-':
+                        result = prev - current;
+                        break;
+                    case '×':
+                    case '*':
+                        result = prev * current;
+                        break;
+                    case '÷':
+                    case '/':
+                        result = prev / current;
+                        break;
+                    case '%':
+                        result = prev % current;
+                        break;
+                    default:
+                        return;
+                }
+
+                currentInput = result.toString();
+                operator = null;
+                previousInput = '';
+                calculationPerformed = true;
+                updateDisplay();
+
+                // Add 3D pop effect on calculation
+                display.style.transform = 'translateZ(30px)';
+                setTimeout(() => {
+                    display.style.transform = 'translateZ(20px)';
+                }, 200);
+            }
+
+            // Function to handle clear
+            function handleClear() {
+                currentInput = '0';
+                previousInput = '';
+                operator = null;
+                updateDisplay();
+            }
+
+            // Function to handle delete
+            function handleDelete() {
+                currentInput = currentInput.slice(0, -1);
+                if (currentInput === '') currentInput = '0';
+                updateDisplay();
+            }
+
+            // Function to handle decimal
+            function handleDecimal() {
+                if (!currentInput.includes('.')) {
+                    currentInput += '.';
+                    updateDisplay();
+                }
+            }
+
+            // Function to animate button press
+            function animateButton(buttonText) {
+                const buttonMap = {
+                    '0': '0', '1': '1', '2': '2', '3': '3', '4': '4', 
+                    '5': '5', '6': '6', '7': '7', '8': '8', '9': '9',
+                    '+': '+', '-': '-', '*': '×', '/': '÷', '%': '%',
+                    'Enter': '=', 'Escape': 'C', 'Backspace': 'DEL', '.': '.'
+                };
+
+                if (buttonText in buttonMap) {
+                    const targetText = buttonMap[buttonText];
+                    let button = null;
+                    
+                    // Find the correct button
+                    buttons.forEach(btn => {
+                        if (btn.textContent === targetText) {
+                            if ((targetText === '+' || targetText === '-' || targetText === '×' || 
+                                 targetText === '÷' || targetText === '%') && 
+                                btn.classList.contains('operator')) {
+                                button = btn;
+                            } else if (targetText === '=' && btn.classList.contains('equals')) {
+                                button = btn;
+                            } else if (targetText === 'C' && btn.classList.contains('clear')) {
+                                button = btn;
+                            } else if (targetText === 'DEL' && btn.classList.contains('delete')) {
+                                button = btn;
+                            } else if (targetText !== '+' && targetText !== '-' && targetText !== '×' && 
+                                      targetText !== '÷' && targetText !== '%' && 
+                                      targetText !== '=' && targetText !== 'C' && targetText !== 'DEL') {
+                                button = btn;
+                            }
+                        }
+                    });
+
+                    if (button) {
+                        const originalTransform = button.style.transform;
+                        button.style.transform = 'translateZ(5px)';
+                        
+                        // Remove any existing timeout to prevent animation conflicts
+                        if (button.resetTimeout) {
+                            clearTimeout(button.resetTimeout);
+                        }
+                        
+                        // Set new timeout and store reference
+                        button.resetTimeout = setTimeout(() => {
+                            button.style.transform = 'translateZ(10px)';
+                            button.resetTimeout = null;
+                        }, 100);
+                    }
+                }
+            }
+
+            // Add event listeners to buttons
+            buttons.forEach(button => {
+                button.addEventListener('click', () => {
+                    // Add 3D press effect
+                    button.style.transform = 'translateZ(5px)';
+                    setTimeout(() => {
+                        button.style.transform = 'translateZ(10px)';
+                    }, 100);
+
+                    // Handle button click based on button type
+                    if (button.classList.contains('clear')) {
+                        handleClear();
+                    } else if (button.classList.contains('delete')) {
+                        handleDelete();
+                    } else if (button.classList.contains('equals')) {
+                        calculate();
+                    } else if (button.classList.contains('operator')) {
+                        handleOperator(button.textContent);
+                    } else if (button.textContent === '.') {
+                        handleDecimal();
+                    } else {
+                        handleNumber(button.textContent);
+                    }
+                });
+            });
+
+            // Add keyboard support
+            document.addEventListener('keydown', (e) => {
+                // Prevent default action for calculator keys to avoid page scrolling
+                const calculatorKeys = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+', '-', '*', '/', '%', 'Enter', 'Escape', 'Backspace', '.'];
+                if (calculatorKeys.includes(e.key)) {
+                    e.preventDefault();
+                }
+
+                // Handle keyboard input
+                if (/^[0-9]$/.test(e.key)) {
+                    // Number keys
+                    handleNumber(e.key);
+                    animateButton(e.key);
+                } else if (['+', '-', '*', '/', '%'].includes(e.key)) {
+                    // Operator keys
+                    let displayOperator = e.key;
+                    if (e.key === '*') displayOperator = '×';
+                    if (e.key === '/') displayOperator = '÷';
+                    handleOperator(displayOperator);
+                    animateButton(e.key);
+                } else if (e.key === 'Enter' || e.key === '=') {
+                    // Enter/Return key for equals
+                    calculate();
+                    animateButton(e.key);
+                } else if (e.key === 'Escape') {
+                    // Escape key for clear
+                    handleClear();
+                    animateButton(e.key);
+                } else if (e.key === 'Backspace') {
+                    // Backspace key for delete
+                    handleDelete();
+                    animateButton(e.key);
+                } else if (e.key === '.') {
+                    // Period key for decimal
+                    handleDecimal();
+                    animateButton(e.key);
+                }
+            });
+
+            // Add 3D effect on calculator hover
+            calculator.addEventListener('mouseenter', () => {
+                calculator.style.transform = 'rotateX(0deg) rotateY(0deg)';
+            });
+
+            calculator.addEventListener('mouseleave', () => {
+                calculator.style.transform = 'rotateX(10deg) rotateY(-10deg)';
+            });
+
+            // Initial display update
+            updateDisplay();
+        });
+    </script>
+</body>
+</html>
